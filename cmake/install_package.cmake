@@ -97,11 +97,6 @@ function(install_package)
   if( NOT EXPORT_${PROJECT_NAME} )
         # add "installed" library to list of required libraries to link against
         if( PACKAGE_LIB_NAME )
-            if(POLICY CMP0026)
-              cmake_policy( SET CMP0026 OLD )
-            endif()
-            get_target_property( _target_library ${PACKAGE_LIB_NAME} LOCATION )
-            get_filename_component( _lib ${_target_library} NAME )
             list( INSERT PACKAGE_LINK_LIBS 0 ${PACKAGE_LIB_NAME} )
         endif()
 
@@ -148,7 +143,10 @@ function(install_package)
 
         # install library itself
         if( PACKAGE_LIB_NAME )
-            install( FILES ${_target_library} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib )
+            install( TARGETS ${PACKAGE_LIB_NAME}
+                ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+                LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+                RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin )
             set( PACKAGE_LIB_LINK "-l${PACKAGE_LIB_NAME}" )
         endif()
     
@@ -190,7 +188,6 @@ function(install_package)
 
         install(FILES
             ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-            ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake
             ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
             DESTINATION
             lib/cmake/${PROJECT_NAME})
@@ -211,11 +208,10 @@ function(install_package)
   elseif( EXPORT_${PROJECT_NAME} )
 
       if( PACKAGE_LIB_NAME )
-            if(POLICY CMP0026)
-              cmake_policy( SET CMP0026 OLD )
-            endif()
-            get_target_property( _target_library ${PACKAGE_LIB_NAME} LOCATION )
-            list( INSERT PACKAGE_LINK_LIBS 0 ${_target_library} )
+            # Reading the LOCATION property is no longer allowed (CMP0026), so
+            # point at the build-tree library via its name and output path.
+            list( INSERT PACKAGE_LINK_LIBS 0 ${PACKAGE_LIB_NAME} )
+            list( APPEND PACKAGE_LINK_DIRS ${CMAKE_BINARY_DIR} )
         endif()
 
         if( PACKAGE_INSTALL_HEADER_DIRS )
